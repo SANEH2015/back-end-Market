@@ -1,27 +1,24 @@
-const Product = require('../models/Product'); // Adjust the path as necessary
+const { firestore } = require('../../code-tribe-frontend/Market/src/firebase'); // Adjust the import according to your structure
 
 // Function to add a product
 const addProduct = async (req, res) => {
     try {
         const { name, price, description } = req.body;
 
-        // Create a new product instance
-        const newProduct = new Product({
+        // Create a new product object
+        const newProduct = {
             name,
             price,
             description,
             available: true, // Default value
-        });
+            // Handle the image upload, if required
+            image: req.file ? req.file.path : null,
+        };
 
-        // Check if an image was uploaded
-        if (req.file) {
-            newProduct.image = req.file.path; // Assuming you're storing the image path
-        }
+        // Store the product in Firestore
+        const productRef = await firestore.collection('products').add(newProduct);
+        const savedProduct = { id: productRef.id, ...newProduct }; // Add the document ID to the saved product
 
-        // Save the product to the database
-        const savedProduct = await newProduct.save();
-
-        // Send the saved product back in the response
         res.status(201).json(savedProduct);
     } catch (error) {
         console.error('Error adding product:', error);
@@ -32,7 +29,11 @@ const addProduct = async (req, res) => {
 // Function to get all products
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        const productsSnapshot = await firestore.collection('products').get();
+        const products = productsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         res.json(products);
     } catch (error) {
         console.error('Error fetching products:', error);

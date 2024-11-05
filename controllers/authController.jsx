@@ -1,27 +1,29 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+// authController.js
+const admin = require('../firebaseAdmin');
 
+// Register a new user
 exports.register = async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
+
     try {
-        const user = new User({ username, password });
-        await user.save();
-        res.status(201).json({ message: 'User registered' });
+        const userRecord = await admin.auth().createUser({
+            email: email,
+            password: password,
+        });
+        res.status(201).json({ message: 'User registered', userId: userRecord.uid });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };
 
+// Log in a user (optional: Firebase Client SDK usually handles this client-side)
 exports.login = async (req, res) => {
-    const { username, password } = req.body;
+    const { idToken } = req.body; // Firebase client will pass the ID token on login
+
     try {
-        const user = await User.findOne({ username });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        res.json({ message: 'User authenticated', uid: decodedToken.uid });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        res.status(401).json({ error: 'Invalid token' });
     }
 };

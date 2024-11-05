@@ -1,8 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
-const { storage, firestore } = require('./firebase'); // Import Firebase setup
 require('dotenv').config();
 
 const app = express();
@@ -18,6 +16,20 @@ app.get('/', (req, res) => {
 
 // Configure multer for image uploads
 const upload = multer({ storage: multer.memoryStorage() }); // Use memory storage for multer
+
+// Dynamic import for Firebase
+let firestore, storage;
+(async () => {
+    try {
+        const firebaseModule = await import('../code-tribe-frontend/Market/src/firebase.js');
+        firestore = firebaseModule.firestore;
+        storage = firebaseModule.storage;
+        console.log("Firebase connected successfully");
+        
+    } catch (error) {
+        console.error('Error importing Firebase module:', error);
+    }
+})();
 
 // Product routes
 const productRoutes = express.Router();
